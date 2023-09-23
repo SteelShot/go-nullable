@@ -25,7 +25,7 @@ package nullable_test
 import (
 	"fmt"
 
-	"github.com/SteelShot/go-nullable"
+	"github.com/steelshot/go-nullable"
 )
 
 type (
@@ -36,35 +36,47 @@ type (
 
 	Card struct {
 		ID     string
-		Person nullable.Nullable[Person]
+		Person nullable.Any[Person]
 	}
 )
 
 func Example_nullableString() {
-	var greet nullable.Nullable[string]
+	var greet nullable.Any[string]
 
 	if greet.Null() {
-		fmt.Println("greet declaration is null")
+		fmt.Println("greet is null after var declaration")
+	}
+
+	greet = nullable.Of("")
+
+	if greet.Null() {
+		fmt.Println("greet is null after zero value assignment")
 	}
 
 	greet = nullable.Of("Hello, World!")
 
 	if greet.Null() {
-		fmt.Println("greet assignment is null")
+		fmt.Println("greet is null after value assignment")
 	}
 
-	fmt.Println("value is", greet.Value())
+	fmt.Printf(`greet value is "%s"`, greet)
 
 	// Output:
-	// greet declaration is null
-	// value is Hello, World!
+	// greet is null after var declaration
+	// greet value is "Hello, World!"
 }
 
 func Example_nullableStruct() {
-	var person nullable.Nullable[Person]
+	var person nullable.Any[Person]
 
 	if person.Null() {
-		fmt.Println("person declaration is null")
+		fmt.Println("person is null after var declaration")
+	}
+
+	person = nullable.Of(Person{})
+
+	if person.Null() {
+		fmt.Println("person is null after zero value assignment")
 	}
 
 	person = nullable.Of(Person{
@@ -73,40 +85,58 @@ func Example_nullableStruct() {
 	})
 
 	if person.Null() {
-		fmt.Println("Of assignment is null")
+		fmt.Println("person is null after value assignment")
 	}
 
-	fmt.Println("value is", person.Value())
+	fmt.Printf(`person value is "%s"`, person)
 
 	// Output:
-	// person declaration is null
-	// value is {John Doe 18}
+	// person is null after var declaration
+	// person value is "{John Doe 18}"
 }
 
-func Example_nullableStructField() {
-	var card nullable.Nullable[Card]
+func Example_nullableNestedStruct() {
+	var card nullable.Any[Card]
 
 	if card.Null() {
-		fmt.Println("card declaration is null")
-	}
-
-	card = nullable.Of(Card{
-		ID:     "card-id",
-		Person: nullable.Nullable[Person]{},
-	})
-
-	if card.Null() {
-		fmt.Println("Of assignment is null")
+		fmt.Println("card is null after var declaration")
 	}
 
 	if card.Value().Person.Null() {
-		fmt.Println("card.Person is null")
+		fmt.Println("card.Person is null after card var declaration")
 	}
 
-	fmt.Println("value is", card.Value())
+	card = nullable.Of(Card{})
+
+	if card.Null() {
+		fmt.Println("card is null after zero value declaration")
+	}
+
+	if card.Value().Person.Null() {
+		fmt.Println("card.Person is null after card zero value declaration")
+	}
+
+	card = nullable.Of(Card{
+		ID: "card-id",
+		Person: nullable.Of(Person{
+			Name: "John Doe",
+			Age:  18,
+		}),
+	})
+
+	if card.Null() {
+		fmt.Println("card is null after value declaration")
+	}
+
+	if card.Value().Person.Null() {
+		fmt.Println("card.Person is null after card value declaration")
+	}
+
+	fmt.Printf(`card value is "%s"`, card)
 
 	// Output:
-	// card declaration is null
-	// card.Person is null
-	// value is {card-id nil}
+	// card is null after var declaration
+	// card.Person is null after card var declaration
+	// card.Person is null after card zero value declaration
+	// card value is "{card-id {John Doe 18}}"
 }

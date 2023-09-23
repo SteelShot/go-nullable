@@ -1,40 +1,51 @@
 # Go Nullable
 
-Nullable generic go types using the power of golang generics
+Nullable is specifically designed for json marshalling and unmarshalling but not limited to, where zero values have business logic meaning.
 
 ## Examples
 
 ```go
 package main
 
-// https://go.dev/play/p/Clck0xmCprK
-
 import (
 	"fmt"
 
-	"github.com/SteelShot/go-nullable"
+	"github.com/steelshot/go-nullable"
 )
 
 func main() {
-	var greet nullable.Nullable[string]
+	var greet nullable.Any[string]
 
 	if greet.Null() {
-		fmt.Println("greet declaration is null")
+		fmt.Println("greet is null after var declaration")
+	}
+
+	greet = nullable.Of("")
+
+	if greet.Null() {
+		fmt.Println("greet is null after zero value assignment")
 	}
 
 	greet = nullable.Of("Hello, World!")
 
 	if greet.Null() {
-		fmt.Println("greet assignment is null")
+		fmt.Println("greet is null after value assignment")
 	}
 
-	fmt.Println("value is", greet.Value())
+	fmt.Printf(`greet value is "%s"`, greet)
 
 	// Output:
-	// greet declaration is null
-	// value is Hello, World!
+	// greet is null after var declaration
+	// greet value is "Hello, World!"
 }
 ```
+
+## Roadmap
+
+- [x] Aliases for builtin types
+- [ ] Text & Binary Marshalling
+- [ ] Support YAML, TOML and others without 3rd party dependencies
+- [ ] API freeze & release 1.0.0
 
 ## FAQ
 
@@ -46,8 +57,7 @@ As of the current release, the minimum required Go version is [1.18](https://go.
 
 As of the current release Go generics are in their infancy age.
 As Go generics grow and become more streamlined, features will be added, modified or removed if there is benefit to the module.
-Breaking changes before 1.0.0 are expected.
-Currently, there is no roadmap.
+Breaking changes before v1.0.0 are expected.
 
 ## License
 

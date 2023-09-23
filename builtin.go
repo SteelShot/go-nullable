@@ -20,17 +20,32 @@
  * SOFTWARE.
  */
 
-package nullables
+package nullable
 
-import "github.com/SteelShot/go-nullable"
-
+// Real number alias
 type (
-	// internal is a temporary measure until generic type declaration does not strip out all struct members
-	internal[T any] struct {
-		nullable.Nullable[T]
-	}
+	Int     = Any[int]
+	Int8    = Any[int8]
+	Int16   = Any[int16]
+	Int32   = Any[int32]
+	Int64   = Any[int64]
+	Uint    = Any[uint]
+	Uint8   = Any[uint8]
+	Uint16  = Any[uint16]
+	Uint32  = Any[uint32]
+	Uint64  = Any[uint64]
+	Float32 = Any[float32]
+	Float64 = Any[float64]
 )
 
-func of[T any](value T) internal[T] {
-	return internal[T]{nullable.Of(value)}
-}
+// Arbitrary type alias
+type (
+	Bool   = Any[bool]
+	String = Any[string]
+)
+
+// Builtin alias' alias
+type (
+	Byte = Uint8
+	Rune = Int32
+)

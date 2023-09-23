@@ -23,130 +23,152 @@
 package nullable
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 )
 
 const (
 	Null = "null"
-	Nil  = "nil"
+	Nil  = "<nil>"
+
+	PersonName = "John Doe"
+	PersonAge  = uint8(18)
 )
 
-func TestNullable_Null(t *testing.T) {
-	n := Nullable[struct{}]{}
+type Person struct {
+	Name String `json:"name,omitempty"`
+	Age  Uint8  `json:"age,omitempty"`
+}
 
-	if !n.Null() {
-		t.Fail()
-	}
+func TestNullable_Null(t *testing.T) {
+	n := Any[struct{}]{}
+
+	assertEquals(t, true, n.Null())
 
 	n = Of(struct{}{})
 
-	if n.Null() {
-		t.Fail()
-	}
+	assertEquals(t, false, n.Null())
 }
 
 func TestNullable_Value(t *testing.T) {
-	n := Nullable[string]{}
+	n := Any[string]{}
 
-	if n.Value() != "" {
-		t.Fail()
-	}
+	assertEquals(t, true, n.Null())
 
 	n = Of("")
 
-	if n.Value() != "" {
-		t.Fail()
-	}
+	assertEquals(t, false, n.Null())
 
 	n = Of(Null)
 
-	if n.Value() != Null {
-		t.Fail()
-	}
+	assertEquals(t, Null, n.Value())
 }
 
 func TestNullable_ValuePointer(t *testing.T) {
-	n := Nullable[*string]{}
+	n := Any[*string]{}
 
-	if n.Value() != nil {
-		t.Fail()
-	}
+	assertEquals(t, true, n.Null())
 
 	n = Of(new(string))
 
-	if n.Value() == nil {
-		t.Fail()
-	}
+	assertEquals(t, false, n.Null())
 
 	ptr := new(string)
 
 	n = Of(ptr)
 
-	if n.Value() != ptr {
-		t.Fail()
-	}
+	assertEquals(t, ptr, n.Value())
+
+	*ptr = Null
+
+	assertEquals(t, *ptr, *n.Value())
 }
 
 func TestNullable_ValuePointerOfPointer(t *testing.T) {
-	n := Nullable[**string]{}
+	n := Any[**string]{}
 
-	if n.Value() != nil {
-		t.Fail()
-	}
+	assertEquals(t, true, n.Null())
 
 	n = Of(new(*string))
 
-	if n.Value() == nil {
-		t.Fail()
-	}
+	assertEquals(t, false, n.Null())
 
 	ptr := new(*string)
 
 	n = Of(ptr)
 
-	if n.Value() != ptr {
-		t.Fail()
+	assertEquals(t, ptr, n.Value())
+
+	*ptr = new(string)
+
+	assertEquals(t, *ptr, *n.Value())
+
+	**ptr = Null
+
+	assertEquals(t, Null, **n.Value())
+}
+
+func TestNullable_Stringer(t *testing.T) {
+	nullableFmtStringersTest(t, Null, Any[string].String)
+}
+
+func TestNullable_StringerPointer(t *testing.T) {
+	s := Null
+
+	nullableFmtStringersTest(t, &s, Any[*string].String)
+}
+
+func Test_SimpleJsonUnmarshalMarshal(t *testing.T) {
+	var (
+		person        Person
+		RawJsonPerson = fmt.Sprintf(`{"name":"%s","age":%d}`, PersonName, PersonAge)
+	)
+
+	if err := json.Unmarshal([]byte(RawJsonPerson), &person); err != nil {
+		t.Fatal(err)
+	}
+
+	if person.Name.Null() || person.Name.Value() != PersonName {
+		t.FailNow()
+	}
+
+	if person.Age.Null() || person.Age.Value() != PersonAge {
+		t.FailNow()
+	}
+
+	if bytes, err := json.Marshal(person); err != nil {
+		t.Fatal(err)
+	} else if result := string(bytes); result != RawJsonPerson {
+		t.Fatal(result, "!=", RawJsonPerson)
 	}
 }
 
-func TestNullable_GoString(t *testing.T) {
-	nullableFmtStringersTest(t, Null, Nullable[string].GoString)
-}
+// reusable tests & utilities
+func nullableFmtStringersTest[T any](t *testing.T, expected T, f func(nullable Any[T]) string) {
+	n := Any[T]{}
 
-func TestNullable_GoStringPointer(t *testing.T) {
-	s := Null
-
-	nullableFmtStringersTest(t, &s, Nullable[*string].GoString)
-}
-
-func TestNullable_String(t *testing.T) {
-	nullableFmtStringersTest(t, Null, Nullable[string].String)
-}
-
-func TestNullable_StringPointer(t *testing.T) {
-	s := Null
-
-	nullableFmtStringersTest(t, &s, Nullable[*string].String)
-}
-
-// reusable tests
-func nullableFmtStringersTest[T any](t *testing.T, expected T, f func(nullable Nullable[T]) string) {
-	n := Nullable[T]{}
-
-	if f(n) != Nil {
-		t.Fail()
-	}
+	assertEquals(t, Nil, f(n))
 
 	n = Of(*new(T))
 
-	if f(n) != fmt.Sprint(*new(T)) {
-		t.Fail()
-	}
+	assertEquals(t, fmt.Sprint(*new(T)), f(n))
 
 	n = Of(expected)
 
-	if f(n) != fmt.Sprint(expected) {
-		t.Fail()
+	assertEquals(t, fmt.Sprint(expected), f(n))
+}
+
+func assertEquals[T comparable](t *testing.T, expected, value T) {
+	assertEqualsMsg(t, expected, value, "")
+}
+
+func assertEqualsMsg[T comparable](t *testing.T, expected, value T, message string) {
+	if expected != value {
+		if message == "" {
+			t.Fatalf("expected: %v, got: %v", expected, value)
+		}
+
+		t.Fatalf("%s: expected: %v, got: %v", message, expected, value)
 	}
 }

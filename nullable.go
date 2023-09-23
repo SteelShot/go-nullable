@@ -20,49 +20,88 @@
  * SOFTWARE.
  */
 
-// Package nullable allows creating generic nullable types
+// Package nullable is specifically designed for json marshalling and unmarshalling but not limited to, where zero values have business logic meaning.
 package nullable
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type (
-	// Nullable is a container struct holding a pointer to an arbitrary value.
-	// By design, the Nullable type is immutable and empty values are considered
-	// by default nil/null.
-	Nullable[T any] struct {
+	// Any holds a single value of type T
+	// BUG(golang) Golang currently (if ever?) has no type constraint that indicates that a type is json (un)marshalling compatible.
+	// If you use a json incompatible type like complex64, the marshal and unmarshal functions will always fail.
+	// BUG(steelshot) Currently the Any type does not implement text/binary (un)marshalling.
+	// YAML, TOML and other's (un)marshalling will not work, for the time being, You should implement your own types that embed Any with custom (un)marshalling.
+	Any[T any] struct {
 		value *T
 	}
 )
 
-// Of returns a default Nullable[T] based on the type of value param.
-func Of[T any](value T) Nullable[T] {
-	return Nullable[T]{&value}
+// Of returns a new non-null Any[typeof value]
+func Of[T any](value T) Any[T] {
+	return Any[T]{&value}
 }
 
-// Value will either return the stored or zero value
-func (r Nullable[T]) Value() (value T) {
-	if !r.Null() {
+// Value returns the value of Any; unless it is null, then the zero value of T will be returned
+func (r Any[T]) Value() (value T) {
+	if r.value != nil {
 		value = *r.value
 	}
 
 	return
 }
 
-// Null will indicate whether the Nullable type is nil/null
-func (r Nullable[T]) Null() bool {
+// Null will indicate whether Any is null (without value).
+func (r Any[T]) Null() bool {
 	return r.value == nil
 }
 
 // GoString implements fmt.GoStringer
-func (r Nullable[T]) GoString() string {
-	if r.Null() {
-		return "nil"
+func (r Any[T]) GoString() string {
+	if r.value == nil {
+		return "<nil>"
+	}
+
+	return fmt.Sprintf("%#v", *r.value)
+}
+
+// String implements fmt.Stringer
+func (r Any[T]) String() string {
+	if r.value == nil {
+		return "<nil>"
 	}
 
 	return fmt.Sprintf("%v", *r.value)
 }
 
-// String implements fmt.Stringer
-func (r Nullable[T]) String() string {
-	return r.GoString()
+// Format implements fmt.Formatter
+func (r Any[T]) Format(f fmt.State, verb rune) {
+	if r.value == nil {
+		fmt.Fprint(f, "<nil>")
+	} else {
+		switch verb {
+		case 's': // replace s with v since most types don't work with %s
+			verb = 'v'
+		}
+
+		fmt.Fprintf(f, fmt.FormatString(f, verb), *r.value)
+	}
+}
+
+// (Un)Marshaller
+
+// MarshalJSON implements json.Marshaler
+func (r Any[T]) MarshalJSON() ([]byte, error) {
+	if r.value == nil {
+		return []byte("null"), nil
+	}
+
+	return json.Marshal(*r.value)
+}
+
+// UnmarshalJSON implements json.Unmarshaler
+func (r *Any[T]) UnmarshalJSON(bytes []byte) (err error) {
+	return json.Unmarshal(bytes, &r.value)
 }
