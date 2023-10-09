@@ -26,6 +26,8 @@ package nullable
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/steelshot/go-nullable/internal"
 )
 
 type (
@@ -86,7 +88,7 @@ func (r Any[T]) Format(f fmt.State, verb rune) {
 			verb = 'v'
 		}
 
-		fmt.Fprintf(f, fmt.FormatString(f, verb), *r.value)
+		fmt.Fprintf(f, internal.FormatString(f, verb), *r.value)
 	}
 }
 
